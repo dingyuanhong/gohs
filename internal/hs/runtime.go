@@ -34,13 +34,13 @@ type MatchEventContext struct {
 
 //export hsMatchEventCallback
 func hsMatchEventCallback(id C.uint, from, to C.ulonglong, flags C.uint, data unsafe.Pointer) C.int {
-	h := (*handle.Handle)(data)
-	ctx, ok := h.Value().(MatchEventContext)
-	if !ok {
-		return C.HS_INVALID
-	}
-
-	err := ctx.handler(uint(id), uint64(from), uint64(to), uint(flags), ctx.context)
+	//h := (*handle.Handle)(data)
+	//ctx, ok := h.Value().(MatchEventContext)
+	//if !ok {
+	//	return C.HS_INVALID
+	//}
+	handler := (*MatchEventHandler)(data)
+	err := (*handler)(uint(id), uint64(from), uint64(to), uint(flags), nil)
 	if err != nil {
 		var hsErr Error
 		if errors.As(err, &hsErr) {
@@ -57,9 +57,9 @@ func Scan(db Database, data []byte, flags ScanFlag, s Scratch, cb MatchEventHand
 	if data == nil {
 		return Error(C.HS_INVALID)
 	}
-
-	h := handle.New(MatchEventContext{cb, ctx})
-	defer h.Delete()
+	//
+	//h := handle.New(MatchEventContext{cb, ctx})
+	//defer h.Delete()
 
 	hdr := (*reflect.SliceHeader)(unsafe.Pointer(&data)) // FIXME: Zero-copy access to go data
 
@@ -69,10 +69,11 @@ func Scan(db Database, data []byte, flags ScanFlag, s Scratch, cb MatchEventHand
 		C.uint(flags),
 		s,
 		C.match_event_handler(C.hsMatchEventCallback),
-		unsafe.Pointer(&h))
+		unsafe.Pointer(&cb))
 
 	// Ensure go data is alive before the C function returns
 	runtime.KeepAlive(data)
+	runtime.KeepAlive()
 
 	if ret != C.HS_SUCCESS {
 		return Error(ret)
