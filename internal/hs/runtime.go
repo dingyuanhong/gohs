@@ -73,7 +73,7 @@ func Scan(db Database, data []byte, flags ScanFlag, s Scratch, cb MatchEventHand
 
 	// Ensure go data is alive before the C function returns
 	runtime.KeepAlive(data)
-	runtime.KeepAlive()
+	runtime.KeepAlive(cb)
 
 	if ret != C.HS_SUCCESS {
 		return Error(ret)
